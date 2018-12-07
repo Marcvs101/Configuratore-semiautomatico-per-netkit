@@ -132,7 +132,15 @@ for i in topology:
                     print("Address "+addr+" assigned to device "+dev2+"\n")
             else:
                 #General netmask handler
-                print("other mask!")
+                #Manual enumeration, for now
+                for j in topology[i]["devices"]:
+                    print("Manually assign address for "+j)
+                    addr = input(">:").strip()
+                    while (addr == "" or addr.count(".")!=3):
+                        print("Format not recognized, retry")
+                        addr = input(">:").strip()
+                    topology[i]["devices"][j][ topology[i]["devices"][j].keys()[0] ] = addr
+                    print("Address "+addr+" assigned to device "+j+"\n")
 
 
 
