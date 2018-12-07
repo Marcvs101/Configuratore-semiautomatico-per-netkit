@@ -44,12 +44,12 @@ for i in topology:
 
         #Assign addressing protocol to domain
         print("Input network addressing protocol for domain "+i+" (DHCP or STATIC)")
-        type = input(">:").strip().lower()
-        while (type != "dhcp" and type != "static"):
+        ptype = input(">:").strip().lower()
+        while (ptype != "dhcp" and ptype != "static"):
             print("Format not recognized, retry")
-            type = input(">:").strip().lower()
-        topology[i]["type"] = type
-        print("Network type "+type+" assigned to domain "+i+"\n")
+            ptype = input(">:").strip().lower()
+        topology[i]["type"] = ptype
+        print("Network type "+ptype+" assigned to domain "+i+"\n")
 
 for i in topology:
     if "tap" in i:
@@ -94,8 +94,42 @@ for i in topology:
                     devicelist.append(j)
                 devicelist.sort()
 
-                #Assign addresses to /31 links
-                
+                #Assign automatically addresses to devices in /31 link
+                addr1 = topology[i]["address"]
+                addr2split = topology[i]["address"].split(".")
+                addr2 = ""+addr2split[0]+":"+addr2split[1]+":"+addr2split[2]+":"+str(int(addr2split[3])+1)
+                dev1 = devicelist[0]
+                dev2 = devicelist[1]
+                topology[i]["devices"][dev1][ topology[i]["devices"][dev1].keys()[0] ] = addr1
+                topology[i]["devices"][dev2][ topology[i]["devices"][dev2].keys()[0] ] = addr2
+
+                #Ask for user confirmation
+                print("Assigned address "+addr1+" for device "+dev1+" and address "+addr2+" for device "+dev2+" over /31 domain "+i)
+                print("Are the assigned adddresses good? (Y/N)")
+                confrm = input(">:").strip().lower()
+                while (confrm != "y" and confrm != "n" and confrm != "yes" and confrm != "no"):
+                    print("Format not recognized, retry")
+                    confrm = input(">:").strip().lower()
+
+                #Handle the no case
+                if (confrm == "n" or confrm == "no"):
+                    #Manually configure dev1
+                    print("Manually assign address for "+dev1)
+                    addr = input(">:").strip()
+                    while (addr == "" or addr.count(".")!=3):
+                        print("Format not recognized, retry")
+                        addr = input(">:").strip()
+                    topology[i]["devices"][dev1][ topology[i]["devices"][dev1].keys()[0] ] = addr
+                    print("Address "+addr+" assigned to device "+dev1+"\n")
+
+                    #Manually configure dev2
+                    print("Manually assign last address digit for "+dev2)
+                    addr = input(">:").strip()
+                    while (addr == "" or addr.count(".")!=3):
+                        print("Format not recognized, retry")
+                        addr = input(">:").strip()
+                    topology[i]["devices"][dev2][ topology[i]["devices"][dev2].keys()[0] ] = addr
+                    print("Address "+addr+" assigned to device "+dev2+"\n")
             else:
                 #General netmask handler
                 print("other mask!")
