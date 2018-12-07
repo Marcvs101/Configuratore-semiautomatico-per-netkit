@@ -130,6 +130,7 @@ for i in topology:
                         addr = input(">:").strip()
                     topology[i]["devices"][dev2][ topology[i]["devices"][dev2].keys()[0] ] = addr
                     print("Address "+addr+" assigned to device "+dev2+"\n")
+                #End of /31 handler
             else:
                 #General netmask handler
                 #Manual enumeration, for now
@@ -141,8 +142,9 @@ for i in topology:
                         addr = input(">:").strip()
                     topology[i]["devices"][j][ topology[i]["devices"][j].keys()[0] ] = addr
                     print("Address "+addr+" assigned to device "+j+"\n")
+                #End of /any handler
 
+print("\nFINE FUNZIONALITA PER ORA\n")
 
-
+#Debug
 print(topology)
-
