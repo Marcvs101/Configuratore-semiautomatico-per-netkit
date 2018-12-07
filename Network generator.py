@@ -11,20 +11,20 @@ for i in lab_conf_lines:
     else:
         #Parsing
         device = i[:i.find("[")].strip()
-    interface = i[i.find("[")+1:i.find("]")].strip()
-    domain = i[i.find("=")+1:].strip()
+        interface = i[i.find("[")+1:i.find("]")].strip()
+        domain = i[i.find("=")+1:].strip()
 
-    #Register domain if necessary
-    if not (domain in topology):
-        topology[domain] = {}
-        topology[domain]["devices"] = {}
-        topology[domain]["address"] = "_NOT_SET"
-        topology[domain]["mask"] = "_NOT_SET"
-        topology[domain]["type"] = "_NOT_SET"
+        #Register domain if necessary
+        if not (domain in topology):
+            topology[domain] = {}
+            topology[domain]["devices"] = {}
+            topology[domain]["address"] = "_NOT_SET"
+            topology[domain]["mask"] = "_NOT_SET"
+            topology[domain]["type"] = "_NOT_SET"
 
-    #Assign device to domain
-    topology[domain]["devices"][device] = {}
-    topology[domain]["devices"][device][interface] = "_NOT_SET"
+        #Assign device to domain
+        topology[domain]["devices"][device] = {}
+        topology[domain]["devices"][device][interface] = "_NOT_SET"
 
 for i in topology:
     if "tap" in i:
