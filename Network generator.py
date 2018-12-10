@@ -1,9 +1,23 @@
+import os
+
+#Convert /num to a.b.c.d
+def netmsk_gen(num):
+    num = int(num.strip())
+    b_num = ["","","",""]
+    for i in range(0,num):
+        b_num[i//8] = b_num[i//8] + "1"
+    for i in range(num,32):
+        b_num[i//8] = b_num[i//8] + "0"
+    return "" + str(int(b_num[0],2)) + "." + str(int(b_num[1],2)) + "." + str(int(b_num[2],2)) + "." + str(int(b_num[3],2))
+
 lab_conf = open("lab.conf",mode='r')
 lab_conf_lines = lab_conf.readlines()
 lab_conf.close()
 
 topology = {}
+devices = {}
 
+#First pass: get basic info from lab.conf
 for i in lab_conf_lines:
     if (i.strip() == ""):
         #Empty line, skip
@@ -26,6 +40,12 @@ for i in lab_conf_lines:
         topology[domain]["devices"][device] = {}
         topology[domain]["devices"][device][interface] = "_NOT_SET"
 
+        #Add device to deviceset
+        if not (device in devices):
+            devices[device] = {}
+        devices[device][interface] = topology[domain]
+
+#Second pass: assign addresses to domains
 for i in topology:
     if "tap" in i:
         #TAP handled differently
@@ -51,6 +71,7 @@ for i in topology:
         topology[i]["type"] = ptype
         print("Network type "+ptype+" assigned to domain "+i+"\n")
 
+#Third pass: for each domain assign addresses to devices
 for i in topology:
     if "tap" in i:
         #TAP handled differently
@@ -143,6 +164,62 @@ for i in topology:
                     topology[i]["devices"][j][ topology[i]["devices"][j].keys()[0] ] = addr
                     print("Address "+addr+" assigned to device "+j+"\n")
                 #End of /any handler
+
+#Fourth pass: write to file each device configuration
+for i in device:
+    choice = "_NOT_SET"
+
+    #Ask user which file to use
+    print("For device "+i+" use startup file (S) or network/interfaces (N/I)?")
+    choice = input(">:").strip().lower()
+    while (choice != "n" and choice != "s" and choice != "i" and choice != "startup" and choice != "network" and choice != "interfaces"):
+        print("Format not recognized, retry")
+        choice = input(">:").strip().lower()
+
+    if (choice == "n" or choice == "network" or choice == "i" or choice == "interfaces"):
+        #Use network/interfaces
+        #Make appropriate directories
+        if not os.path.exists(i+"/network"):
+            os.makedirs(i+"/network")
+
+        #Prepare content
+        content = ""
+
+        #Ugly scan of the topology
+        for iface in i:
+            # Build content for network/interfaces
+            content = content + "auto " + iface + "\n"
+            if (device[i][iface]["type"] == "dhcp"):
+                #DHCP handler
+                if (device[i][iface]["devices"][i][iface] == "_NOT_SET"):
+                    #Not server
+                    content = content + "iface " + iface + " inet dhcp\n"
+                else:
+                    #Server found
+                    content = content + "iface " + iface + " inet static\n"
+                    content = content + "   address " + device[i][iface]["devices"][i][iface] + "\n"
+                    content = content + "   netmask " + netmsk_gen(device[i][iface]["mask"]) + "\n"
+
+                    print("WARNING DHCP.CONF NOT YET IMPLEMENTED")
+            else:
+                #Static addressing handler
+                content = content + "iface " + iface + " inet static\n"
+                content = content + "   address " + device[i][iface]["devices"][i][iface] + "\n"
+                content = content + "   netmask " + netmsk_gen(device[i][iface]["mask"]) + "\n"
+
+            #Line separator between interfaces
+            content = content + "\n"
+        
+        #Overwrite all contents of the interfaces file with new contents
+        f = open(i+"/network/interfaces",mode="w")
+        print(content,file=f)
+        f.close()
+        
+    else:
+        #Use startup files
+        print("WARNING STARTUP FILES NOT YET IMPLEMENTED")
+
+
 
 print("\nFINE FUNZIONALITA PER ORA\n")
 
