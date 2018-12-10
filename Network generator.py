@@ -93,7 +93,7 @@ for i in topology:
 
             #Select one member of domain to be elected as server
             srvr = input(">:").strip().lower()
-            while (not (srvr in topology[i]["devices"].lower())):
+            while (not (srvr in topology[i]["devices"])):
                 print("Warning, device not in list, retry")
                 srvr = input(">:").strip().lower()
 
@@ -104,9 +104,12 @@ for i in topology:
                 print("Format not recognized, retry")
                 addr = input(">:").strip()
 
-            topology[i]["devices"][srvr][ topology[i]["devices"][srvr].keys()[0] ] = addr
+            key = ""
+            for k in topology[i]["devices"][srvr].keys():
+                key = k
+            topology[i]["devices"][srvr][key] = addr
 
-            print(srvr + "appointed as server with address "+addr+", all orthers will be slaves\n")
+            print(srvr + " appointed as server with address "+addr+", all orthers will be slaves\n")
             #End of DHCP handler
             #Note, only server has an assigned address, all others have "_NOT_SET"
         else:
@@ -126,8 +129,16 @@ for i in topology:
                 addr2 = ""+addr2split[0]+":"+addr2split[1]+":"+addr2split[2]+":"+str(int(addr2split[3])+1)
                 dev1 = devicelist[0]
                 dev2 = devicelist[1]
-                topology[i]["devices"][dev1][ topology[i]["devices"][dev1].keys()[0] ] = addr1
-                topology[i]["devices"][dev2][ topology[i]["devices"][dev2].keys()[0] ] = addr2
+
+                key = ""
+                for k in topology[i]["devices"][dev1].keys():
+                    key = k
+                topology[i]["devices"][dev1][key] = addr1
+
+                key = ""
+                for k in topology[i]["devices"][dev2].keys():
+                    key = k
+                topology[i]["devices"][dev2][key] = addr2
 
                 #Ask for user confirmation
                 print("Assigned address "+addr1+" for device "+dev1+" and address "+addr2+" for device "+dev2+" over /31 domain "+i)
@@ -145,7 +156,12 @@ for i in topology:
                     while (addr == "" or addr.count(".")!=3):
                         print("Format not recognized, retry")
                         addr = input(">:").strip()
-                    topology[i]["devices"][dev1][ topology[i]["devices"][dev1].keys()[0] ] = addr
+
+                    key = ""
+                    for k in topology[i]["devices"][dev1].keys():
+                        key = k
+                    topology[i]["devices"][dev1][key] = addr
+
                     print("Address "+addr+" assigned to device "+dev1+"\n")
 
                     #Manually configure dev2
@@ -154,7 +170,12 @@ for i in topology:
                     while (addr == "" or addr.count(".")!=3):
                         print("Format not recognized, retry")
                         addr = input(">:").strip()
-                    topology[i]["devices"][dev2][ topology[i]["devices"][dev2].keys()[0] ] = addr
+
+                    key = ""
+                    for k in topology[i]["devices"][dev2].keys():
+                        key = k
+                    topology[i]["devices"][dev2][key] = addr
+                    
                     print("Address "+addr+" assigned to device "+dev2+"\n")
                 #End of /31 handler
             else:
@@ -166,7 +187,12 @@ for i in topology:
                     while (addr == "" or addr.count(".")!=3):
                         print("Format not recognized, retry")
                         addr = input(">:").strip()
-                    topology[i]["devices"][j][ topology[i]["devices"][j].keys()[0] ] = addr
+
+                    key = ""
+                    for k in topology[i]["devices"][j].keys():
+                        key = k
+                    topology[i]["devices"][j][key] = addr
+                    
                     print("Address "+addr+" assigned to device "+j+"\n")
                 #End of /any handler
 
@@ -184,7 +210,7 @@ for i in devices:
 
 #Fourth pass: write to file each device configuration
 print("FOURTH PASS\nWrite to file each device configuration\n")
-for i in device:
+for i in devices:
     choice = "_NOT_SET"
 
     #Ask user which file to use
@@ -205,28 +231,32 @@ for i in device:
         content = ""
 
         #Ugly scan of the topology
-        for iface in i:
-            # Build content for network/interfaces
-            content = content + "auto " + iface + "\n"
-            if (device[i][iface]["type"] == "dhcp"):
-                #DHCP handler
-                if (device[i][iface]["devices"][i][iface] == "_NOT_SET"):
-                    #Not server
-                    content = content + "iface " + iface + " inet dhcp\n"
-                else:
-                    #Server found
-                    content = content + "iface " + iface + " inet static\n"
-                    content = content + "    address " + device[i][iface]["devices"][i][iface] + "\n"
-                    content = content + "    netmask " + netmsk_gen(device[i][iface]["mask"]) + "\n"
-
+        for iface in devices[i]:
+            if "tap" in devices[i][iface]:
+                #TAP handled differently
+                print("Skip tap interface")
             else:
-                #Static addressing handler
-                content = content + "iface " + iface + " inet static\n"
-                content = content + "    address " + device[i][iface]["devices"][i][iface] + "\n"
-                content = content + "    netmask " + netmsk_gen(device[i][iface]["mask"]) + "\n"
+                # Build content for network/interfaces
+                content = content + "auto " + iface + "\n"
+                if (devices[i][iface]["type"] == "dhcp"):
+                    #DHCP handler
+                    if (devices[i][iface]["devices"][i][iface] == "_NOT_SET"):
+                        #Not server
+                        content = content + "iface " + iface + " inet dhcp\n"
+                    else:
+                        #Server found
+                        content = content + "iface " + iface + " inet static\n"
+                        content = content + "    address " + devices[i][iface]["devices"][i][iface] + "\n"
+                        content = content + "    netmask " + netmsk_gen(devices[i][iface]["mask"]) + "\n"
 
-            #Line separator between interfaces
-            content = content + "\n"
+                else:
+                    #Static addressing handler
+                    content = content + "iface " + iface + " inet static\n"
+                    content = content + "    address " + devices[i][iface]["devices"][i][iface] + "\n"
+                    content = content + "    netmask " + netmsk_gen(devices[i][iface]["mask"]) + "\n"
+
+                #Line separator between interfaces
+                content = content + "\n"
         
         #Overwrite all contents of the interfaces file with new contents
         f = open(i+"/etc/network/interfaces",mode="w")
@@ -243,27 +273,31 @@ for i in device:
         content = ""
 
         #Ugly scan of the topology
-        for iface in i:
-            # Build content for network/interfaces
-            content = content + "ip link set " + iface + " up\n"
-            if (device[i][iface]["type"] == "dhcp"):
-                #DHCP handler
-                if (device[i][iface]["devices"][i][iface] == "_NOT_SET"):
-                    #Not server
-                    content = content + "dhclient " + iface + "\n"
-                else:
-                    #Server found
-                    content = content + "ip link set " + iface + " up\n"
-                    content = content + "ip addr add " + device[i][iface]["devices"][i][iface] + "/" + device[i][iface]["mask"] + " dev " + iface + "\n"
-                    content = content + "/etc/init.d/dhcp3-server start\n"
-
+        for iface in devices[i]:
+            if "tap" in iface:
+                #TAP handled differently
+                print("Skip tap interface")
             else:
-                #Static addressing handler
+                # Build content for network/interfaces
                 content = content + "ip link set " + iface + " up\n"
-                content = content + "ip addr add " + device[i][iface]["devices"][i][iface] + "/" + device[i][iface]["mask"] + " dev " + iface + "\n"
+                if (devices[i][iface]["type"] == "dhcp"):
+                    #DHCP handler
+                    if (devices[i][iface]["devices"][i][iface] == "_NOT_SET"):
+                        #Not server
+                        content = content + "dhclient " + iface + "\n"
+                    else:
+                        #Server found
+                        content = content + "ip link set " + iface + " up\n"
+                        content = content + "ip addr add " + devices[i][iface]["devices"][i][iface] + "/" + devices[i][iface]["mask"] + " dev " + iface + "\n"
+                        content = content + "/etc/init.d/dhcp3-server start\n"
 
-            #Line separator between interfaces
-            content = content + "\n"
+                else:
+                    #Static addressing handler
+                    content = content + "ip link set " + iface + " up\n"
+                    content = content + "ip addr add " + devices[i][iface]["devices"][i][iface] + "/" + devices[i][iface]["mask"] + " dev " + iface + "\n"
+
+                #Line separator between interfaces
+                content = content + "\n"
         
         #Append all contents of the interfaces file with new contents
         f = open(i+".startup",mode="a")
@@ -273,42 +307,46 @@ for i in device:
 
 #Fifth pass: handle dhcp servers
 print("FIFTH PASS\nHandling DHCP servers\n")
-for i in device:
+for i in devices:
     #Prepare content
     content = "default-lease-time 3600;\n"
     
-    for iface in i:
-        if (device[i][iface]["type"] == "dhcp"):
-            if (device[i][iface]["devices"][i][iface] != "_NOT_SET"):
-                print("Handling DHCP server configuration for server "+i+" on network "+device[i][iface]["address"]+"/"+device[i][iface]["mask"])
-                print("WARN: Address range is not yet checked, the program will not throw errors for invalid ranges")
+    for iface in devices[i]:
+        if "tap" in iface:
+            #TAP handled differently
+            print("Skip tap interface")
+        else:
+            if (devices[i][iface]["type"] == "dhcp"):
+                if (devices[i][iface]["devices"][i][iface] != "_NOT_SET"):
+                    print("Handling DHCP server configuration for server "+i+" on network "+devices[i][iface]["address"]+"/"+devices[i][iface]["mask"])
+                    print("WARN: Address range is not yet checked, the program will not throw errors for invalid ranges")
 
-                #Make appropriate directories
-                if not os.path.exists(i+"/etc/dhcp3"):
-                    os.makedirs(i+"/etc/dhcp3")
+                    #Make appropriate directories
+                    if not os.path.exists(i+"/etc/dhcp3"):
+                        os.makedirs(i+"/etc/dhcp3")
 
-                #Ask for DHCP range
-                print("Define minimum assignable address for DHCP server "+i+" on network "+device[i][iface]["address"]+"/"+device[i][iface]["mask"])
-                print("Please use a.b.c.d format")
-                min_addr = input(">:").strip()
-                while (min_addr == "" or min_addr.count(".")!=3):
-                    print("Format not recognized, retry")
+                    #Ask for DHCP range
+                    print("Define minimum assignable address for DHCP server "+i+" on network "+devices[i][iface]["address"]+"/"+devices[i][iface]["mask"])
+                    print("Please use a.b.c.d format")
                     min_addr = input(">:").strip()
+                    while (min_addr == "" or min_addr.count(".")!=3):
+                        print("Format not recognized, retry")
+                        min_addr = input(">:").strip()
 
-                print("Define maximum assignable address for DHCP server "+i+" on network "+device[i][iface]["address"]+"/"+device[i][iface]["mask"])
-                print("Please use a.b.c.d format")
-                max_addr = input(">:").strip()
-                while (max_addr == "" or max_addr.count(".")!=3):
-                    print("Format not recognized, retry")
+                    print("Define maximum assignable address for DHCP server "+i+" on network "+devices[i][iface]["address"]+"/"+devices[i][iface]["mask"])
+                    print("Please use a.b.c.d format")
                     max_addr = input(">:").strip()
+                    while (max_addr == "" or max_addr.count(".")!=3):
+                        print("Format not recognized, retry")
+                        max_addr = input(">:").strip()
 
-                print("Address range "+min_addr+" - "+max_addr+" selected for this DHCP configuration\n")
-                
-                #Prepare content
-                content = content + "subnet " + device[i][iface]["address"] + " netmask " + netmsk_gen(device[i][iface]["mask"]) + " {\n"
-                content = content + "    range " + min_addr + " " + max_addr + ";\n"
-                content = content + "    option routers " + device[i][iface]["devices"][i][iface] + ";\n"
-                content = content + "}\n"
+                    print("Address range "+min_addr+" - "+max_addr+" selected for this DHCP configuration\n")
+                    
+                    #Prepare content
+                    content = content + "subnet " + devices[i][iface]["address"] + " netmask " + netmsk_gen(devices[i][iface]["mask"]) + " {\n"
+                    content = content + "    range " + min_addr + " " + max_addr + ";\n"
+                    content = content + "    option routers " + devices[i][iface]["devices"][i][iface] + ";\n"
+                    content = content + "}\n"
 
     if (content != "default-lease-time 3600;\n"):
         #Overwrite all contents of the interfaces file with new contents
