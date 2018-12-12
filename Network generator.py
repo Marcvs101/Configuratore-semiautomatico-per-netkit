@@ -17,7 +17,6 @@ lab_conf.close()
 
 #Initialize structures
 topology = {}
-devices = {}
 files = {}
 
 
@@ -44,11 +43,6 @@ for i in lab_conf_lines:
         #Assign device to domain
         topology[domain]["devices"][device] = {}
         topology[domain]["devices"][device][interface] = "_NOT_SET"
-
-        #Add device to deviceset
-        if not (device in devices):
-            devices[device] = {}
-        devices[device][interface] = topology[domain]
 
         #Add device to fileset
         if not (device in files):
@@ -382,13 +376,43 @@ for i in topology:
                 files[dev]["dhcp"] = files[dev]["dhcp"] + "}\n\n"
 
 
+#Sixth pass: write files to disk
+print("SIXTH PASS\nWrite files to disk\n")
+for dev in files:
+    for file in files[dev]:
+        if (file == "startup"):
+            #Startup file handler
+            f = open(dev+".startup","w")
+            print(files[dev][file].strip(),file=f)
+            f.close()
+        else if (file == "interfaces"):
+            #Network/interfaces file handler
 
-print("\nTODO: print out files in step 6\n")
+            #Make appropriate directories
+            if not os.path.exists(dev+"/etc/network"):
+                os.makedirs(dev+"/etc/network")
+
+            #Write to file
+            f = open(dev+"/etc/network/interfaces","w")
+            print(files[dev][file].strip(),file=f)
+            f.close()
+        else if (file == "dhcp"):
+            #Network/interfaces file handler
+
+            #Make appropriate directories
+            if not os.path.exists(dev+"/etc/dhcp3"):
+                os.makedirs(dev+"/etc/dhcp3")
+
+            #Write to file
+            f = open(dev+"/etc/dhcp3/dhcpd.conf","w")
+            print(files[dev][file].strip(),file=f)
+            f.close()
+
+
+
 print("\nEND OF FUNCTIONALITY FOR NOW\nDUMPING DEBUG INFO\n")
 
 #Debug
 print(topology)
-print(" ")
-print(devices)
 print(" ")
 input("quit")
