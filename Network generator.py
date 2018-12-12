@@ -135,7 +135,7 @@ for i in topology:
                 #Assign automatically addresses to devices in /31 link
                 addr1 = topology[i]["address"]
                 addr2split = topology[i]["address"].split(".")
-                addr2 = ""+addr2split[0]+":"+addr2split[1]+":"+addr2split[2]+":"+str(int(addr2split[3])+1)
+                addr2 = ""+addr2split[0]+"."+addr2split[1]+"."+addr2split[2]+"."+str(int(addr2split[3])+1)
                 dev1 = devicelist[0]
                 dev2 = devicelist[1]
 
@@ -186,6 +186,10 @@ for i in topology:
                     topology[i]["devices"][dev2][key] = addr
                     
                     print("Address "+addr+" assigned to device "+dev2+"\n")
+
+                #Line separator
+                print(" ")
+
                 #End of /31 handler
             else:
                 #General netmask handler
@@ -247,12 +251,14 @@ for i in topology:
 
                     if (topology[i]["devices"][dev][iface] == "_NOT_SET"):
                         #Not server
-                        files[dev]["interfaces"] = files[dev]["interfaces"] + "iface " + iface + " inet dhcp\n"
+                        files[dev]["interfaces"] = files[dev]["interfaces"] + "auto eth" + iface + "\n"
+                        files[dev]["interfaces"] = files[dev]["interfaces"] + "iface eth" + iface + " inet dhcp\n\n"
                     else:
                         #Server found
-                        files[dev]["interfaces"] = files[dev]["interfaces"] + "iface " + iface + " inet static\n"
-                        files[dev]["interfaces"] = files[dev]["interfaces"] + "    address " + topology[i]["devices"][dev][iface] + "\n"
-                        files[dev]["interfaces"] = files[dev]["interfaces"] + "    netmask " + netmsk_gen(topology[i]["mask"]) + "\n"
+                        files[dev]["interfaces"] = files[dev]["interfaces"] + "auto eth" + iface + "\n"
+                        files[dev]["interfaces"] = files[dev]["interfaces"] + "iface eth" + iface + " inet static\n"
+                        files[dev]["interfaces"] = files[dev]["interfaces"] + "\taddress " + topology[i]["devices"][dev][iface] + "\n"
+                        files[dev]["interfaces"] = files[dev]["interfaces"] + "\tnetmask " + netmsk_gen(topology[i]["mask"]) + "\n\n"
 
                 #End of DHCP handler
             else:
@@ -270,9 +276,10 @@ for i in topology:
                         iface = k
 
                     #Flush static values
-                    files[dev]["interfaces"] = files[dev]["interfaces"] + "iface " + iface + " inet static\n"
-                    files[dev]["interfaces"] = files[dev]["interfaces"] + "    address " + topology[i]["devices"][dev][iface] + "\n"
-                    filterles[dev]["interfaces"] = files[dev]["interfaces"] + "    netmask " + netmsk_gen(topology[i]["mask"]) + "\n"
+                    files[dev]["interfaces"] = files[dev]["interfaces"] + "auto eth" + iface + "\n"
+                    files[dev]["interfaces"] = files[dev]["interfaces"] + "iface eth" + iface + " inet static\n"
+                    files[dev]["interfaces"] = files[dev]["interfaces"] + "\taddress " + topology[i]["devices"][dev][iface] + "\n"
+                    files[dev]["interfaces"] = files[dev]["interfaces"] + "\tnetmask " + netmsk_gen(topology[i]["mask"]) + "\n\n"
 
                 #End of static handler
 
@@ -282,79 +289,84 @@ for i in topology:
             print("WARN: Startup files are buggy, please check them manually after generation")
             print("WARN: Routing is not yet implemented, please do it manually")
             print("Using .startup files for domain "+i+"\n")
-            
-            for dev in topology[i]["devices"]:
-                #Setup structure if not present
-                if not ("startup" in files[dev]):
-                    files[dev]["startup"] = ""
 
-                if (topology[i]["type"] == "dhcp"):
-                    #DHCP handler
+            if (topology[i]["type"] == "dhcp"):
+                #DHCP handler
 
-                    #Scan all devices in domain
-                    for dev in topology[i]["devices"]:
-                        #Setup structure if not present
-                        if not ("startup" in files[dev]):
-                            files[dev]["startup"] = ""
+                #Scan all devices in domain
+                for dev in topology[i]["devices"]:
+                    #Setup structure if not present
+                    if not ("startup" in files[dev]):
+                        files[dev]["startup"] = ""
 
-                        #Select one interface -- ASSUME ONE INTERFACE PER DEVICE IN NETWORK
-                        iface = ""
-                        for k in topology[i]["devices"][dev].keys():
-                            iface = k
+                    #Select one interface -- ASSUME ONE INTERFACE PER DEVICE IN NETWORK
+                    iface = ""
+                    for k in topology[i]["devices"][dev].keys():
+                        iface = k
 
-                        if (topology[i]["devices"][dev][iface] == "_NOT_SET"):
-                            #Not server
-                            files[dev]["startup"] = files[dev]["startup"] + "dhclient " + iface + "\n"
-                        else:
-                            #Server found
-                            files[dev]["startup"] = files[dev]["startup"] + "ip link set " + iface + " up\n"
-                            files[dev]["startup"] = files[dev]["startup"] + "ip addr add " + topology[i]["devices"][dev][iface] + "/" + topology[i]["mask"] + " dev " + iface + "\n"
-                            files[dev]["startup"] = files[dev]["startup"] + "/etc/init.d/dhcp3-server start\n"
+                    if (topology[i]["devices"][dev][iface] == "_NOT_SET"):
+                        #Not server
+                        files[dev]["startup"] = files[dev]["startup"] + "dhclient eth" + iface + "\n\n"
+                    else:
+                        #Server found
+                        files[dev]["startup"] = files[dev]["startup"] + "ip link set eth" + iface + " up\n"
+                        files[dev]["startup"] = files[dev]["startup"] + "ip addr add " + topology[i]["devices"][dev][iface] + "/" + topology[i]["mask"] + " dev eth" + iface + "\n"
+                        files[dev]["startup"] = files[dev]["startup"] + "/etc/init.d/dhcp3-server start\n\n"
 
-                    #End of DHCP handler
+                #End of DHCP handler
 
-                else:
-                    #Static addressing handler
+            else:
+                #Static addressing handler
 
-                    #Scan all devices in domain
-                    for dev in topology[i]["devices"]:
-                        #Setup structure if not present
-                        if not ("startup" in files[dev]):
-                            files[dev]["startup"] = ""
+                #Scan all devices in domain
+                for dev in topology[i]["devices"]:
+                    #Setup structure if not present
+                    if not ("startup" in files[dev]):
+                        files[dev]["startup"] = ""
 
-                        files[dev]["startup"] = files[dev]["startup"] + "ip link set " + iface + " up\n"
-                        files[dev]["startup"] = files[dev]["startup"] + "ip addr add " + topology[i]["devices"][dev][iface] + "/" + topology[i]["mask"] + " dev " + iface + "\n"
+                    files[dev]["startup"] = files[dev]["startup"] + "ip link set eth" + iface + " up\n"
+                    files[dev]["startup"] = files[dev]["startup"] + "ip addr add " + topology[i]["devices"][dev][iface] + "/" + topology[i]["mask"] + " dev eth" + iface + "\n\n"
 
-                    #End of static handler
+                #End of static handler
 
             #End of startup handler
 
 
 #Fifth pass: handle dhcp servers
 print("FIFTH PASS\nHandling DHCP servers\n")
-for i in devices:
-
-    #Setup structure if not present
-    if not ("dhcp" in files[i]):
-        files[dev]["dhcp"] = "default-lease-time 3600;\n"
+for i in topology:
 
     #Look for a dhcp domain among the ones i is connected to
-    for iface in devices[i]:
-        if (devices[i][iface]["type"] == "dhcp"):
-            if (devices[i][iface]["devices"][i][iface] != "_NOT_SET"):
-                #Device i is server
-                print("Handling DHCP server configuration for server "+i+" on network "+devices[i][iface]["address"]+"/"+devices[i][iface]["mask"])
+    if (topology[i]["type"] == "dhcp"):
+
+        #Scan all devices
+        for dev in topology[i]["devices"]:
+
+            #Select one interface -- ASSUME ONE INTERFACE PER DEVICE IN NETWORK
+            iface = ""
+            for k in topology[i]["devices"][dev].keys():
+                iface = k
+
+            #Look for DHCP server
+            if (topology[i]["devices"][dev][iface] != "_NOT_SET"):
+
+                #Setup structure if not present
+                if not ("dhcp" in files[dev]):
+                    files[dev]["dhcp"] = "default-lease-time 3600;\noption domain-name-servers 8.8.8.8;\n\n"
+
+                #Device dev is server
+                print("Handling DHCP server configuration for server "+dev+" on network "+topology[i]["address"]+"/"+topology[i]["mask"])
                 print("WARN: Address range is not yet checked, the program will not throw errors for invalid ranges")
 
                 #Ask for DHCP range
-                print("Define minimum assignable address for DHCP server "+i+" on network "+devices[i][iface]["address"]+"/"+devices[i][iface]["mask"])
+                print("Define minimum assignable address for DHCP server "+dev+" on network "+topology[i]["address"]+"/"+topology[i]["mask"])
                 print("Please use a.b.c.d format")
                 min_addr = input(">:").strip()
                 while (min_addr == "" or min_addr.count(".")!=3):
                     print("Format not recognized, retry")
                     min_addr = input(">:").strip()
 
-                print("Define maximum assignable address for DHCP server "+i+" on network "+devices[i][iface]["address"]+"/"+devices[i][iface]["mask"])
+                print("Define maximum assignable address for DHCP server "+dev+" on network "+topology[i]["address"]+"/"+topology[i]["mask"])
                 print("Please use a.b.c.d format")
                 max_addr = input(">:").strip()
                 while (max_addr == "" or max_addr.count(".")!=3):
@@ -364,10 +376,10 @@ for i in devices:
                 print("Address range "+min_addr+" - "+max_addr+" selected for this DHCP configuration\n")
                 
                 #Prepare content
-                files[dev]["dhcp"] = files[dev]["dhcp"] + "subnet " + devices[i][iface]["address"] + " netmask " + netmsk_gen(devices[i][iface]["mask"]) + " {\n"
-                files[dev]["dhcp"] = files[dev]["dhcp"] + "    range " + min_addr + " " + max_addr + ";\n"
-                files[dev]["dhcp"] = files[dev]["dhcp"] + "    option routers " + devices[i][iface]["devices"][i][iface] + ";\n"
-                files[dev]["dhcp"] = files[dev]["dhcp"] + "}\n"
+                files[dev]["dhcp"] = files[dev]["dhcp"] + "subnet " + topology[i]["address"] + " netmask " + netmsk_gen(topology[i]["mask"]) + " {\n"
+                files[dev]["dhcp"] = files[dev]["dhcp"] + "\trange " + min_addr + " " + max_addr + ";\n"
+                files[dev]["dhcp"] = files[dev]["dhcp"] + "\toption routers " + topology[i]["devices"][dev][iface] + ";\n"
+                files[dev]["dhcp"] = files[dev]["dhcp"] + "}\n\n"
 
 
 
