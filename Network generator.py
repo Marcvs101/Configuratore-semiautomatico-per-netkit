@@ -385,7 +385,7 @@ for dev in files:
             f = open(dev+".startup","w")
             print(files[dev][file].strip(),file=f)
             f.close()
-        else if (file == "interfaces"):
+        elif (file == "interfaces"):
             #Network/interfaces file handler
 
             #Make appropriate directories
@@ -396,7 +396,7 @@ for dev in files:
             f = open(dev+"/etc/network/interfaces","w")
             print(files[dev][file].strip(),file=f)
             f.close()
-        else if (file == "dhcp"):
+        elif (file == "dhcp"):
             #Network/interfaces file handler
 
             #Make appropriate directories
