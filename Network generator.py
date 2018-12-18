@@ -375,6 +375,8 @@ for i in topology:
                 files[dev]["dhcp"] = files[dev]["dhcp"] + "\toption routers " + topology[i]["devices"][dev][iface] + ";\n"
                 files[dev]["dhcp"] = files[dev]["dhcp"] + "}\n\n"
 
+                files[dev]["startup"] = files[dev]["startup"] + "/etc/init.d/dhcp3-server start\n"
+
 
 #Sixth pass: write files to disk
 print("SIXTH PASS\nWrite files to disk\n")
