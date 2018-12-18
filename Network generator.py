@@ -305,7 +305,6 @@ for i in topology:
                         #Server found
                         files[dev]["startup"] = files[dev]["startup"] + "ip link set eth" + iface + " up\n"
                         files[dev]["startup"] = files[dev]["startup"] + "ip addr add " + topology[i]["devices"][dev][iface] + "/" + topology[i]["mask"] + " dev eth" + iface + "\n"
-                        files[dev]["startup"] = files[dev]["startup"] + "/etc/init.d/dhcp3-server start\n\n"
 
                 #End of DHCP handler
 
